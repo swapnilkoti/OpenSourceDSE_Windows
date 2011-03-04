@@ -1,6 +1,16 @@
 package dsePackage;
 
-import javax.swing.*;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.DefaultListModel;
+import javax.swing.JCheckBox;
+import javax.swing.JFileChooser;
+import javax.swing.JScrollPane;
+import javax.swing.JComboBox;
+import javax.swing.JOptionPane;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.WindowConstants;
 import java.io.*;
 import javax.xml.parsers.*;
 import javax.xml.transform.*;
@@ -9,30 +19,44 @@ import javax.xml.transform.stream.*;
 import org.w3c.dom.*;
 
 public class CustomizationUI extends javax.swing.JFrame {
-    
-	
-	private static String getTagValue(String sTag, Element eElement){
-	    NodeList nlList= eElement.getElementsByTagName(sTag).item(0).getChildNodes();
-	    Node nValue = (Node) nlList.item(0); 
-	 
-	    return nValue.getNodeValue();    
-	 }
+
     public CustomizationUI() {
         initComponents();
         try {
         	File fXmlFile = new File("optionFile.xml");
-        	DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-        	DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-        	Document doc = dBuilder.parse(fXmlFile);
-        	doc.getDocumentElement().normalize();
-        	NodeList nList = doc.getElementsByTagName("*");
-        	Node nNode = (Node) nList.item(0);
-        	System.out.println(nNode.getNodeValue());
-        	
-        	/*if (nNode.getNodeType() == Node.ELEMENT_NODE) {
-                Element eElement = (Element) nNode;
-                System.out.println(getTagValue("criticalDirectory",eElement));
-        	}*/
+        	if(fXmlFile.exists()){
+        		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            	DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            	Document doc = dBuilder.parse(fXmlFile);
+            	doc.getDocumentElement().normalize();
+            	NodeList nList=doc.getElementsByTagName("reIndexInterval");
+            	Node nNode = (Node) nList.item(0);
+            	jComboBoxInterval.setSelectedItem(nNode.getTextContent());
+            	nList = doc.getElementsByTagName("hotKey");
+            	nNode = (Node) nList.item(0);
+            	if(nNode.getTextContent().equalsIgnoreCase("true")){
+            		jCheckBoxHotKey.setSelected(true);
+            	}
+            	else{
+            		jCheckBoxHotKey.setSelected(false);
+            	}
+            	nList = doc.getElementsByTagName("criticalDirectory");
+            	nNode = (Node) nList.item(0);
+            	Element eElement = (Element) nNode;
+            	nList= eElement.getElementsByTagName("directory");
+        	    for(int i=0;i<nList.getLength();i++){
+        	    	Node nValue = (Node) nList.item(i);
+        	    	modelCritical.addElement(nValue.getTextContent());
+        	    } 
+                nList = doc.getElementsByTagName("notIndexedDirectory");
+            	nNode = (Node) nList.item(0);
+            	eElement = (Element) nNode;
+            	nList= eElement.getElementsByTagName("directory");
+        	    for(int i=0;i<nList.getLength();i++){
+        	    	Node nValue = (Node) nList.item(i);
+        	    	modelNotIndex.addElement(nValue.getTextContent());
+        	    } 
+        	}
         }catch(Exception e){System.out.println(e.getMessage());}
 
     }
@@ -258,8 +282,8 @@ public class CustomizationUI extends javax.swing.JFrame {
     }
 
     private JFileChooser jFileChooser;
-    DefaultListModel modelCritical;
-    DefaultListModel modelNotIndex;
+    private DefaultListModel modelCritical;
+    private DefaultListModel modelNotIndex;
     private JButton jButtonCritical;
     private JButton jButtonNotIndex;
     private JButton jButtonReIndex;
