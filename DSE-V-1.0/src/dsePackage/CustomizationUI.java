@@ -1,4 +1,4 @@
-package dse;
+package dsePackage;
 
 import javax.swing.*;
 import java.io.*;
@@ -7,9 +7,6 @@ import javax.xml.transform.*;
 import javax.xml.transform.dom.*;
 import javax.xml.transform.stream.*;
 import org.w3c.dom.*;
-
-
-
 
 public class CustomizationUI extends javax.swing.JFrame {
     
@@ -176,13 +173,6 @@ public class CustomizationUI extends javax.swing.JFrame {
         pack();
     }
     
-    public static void main(String args[]) {
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new CustomizationUI().setVisible(true);
-            }
-        });
-    }
     private void jButtonCriticalMouseClicked(java.awt.event.MouseEvent evt) {
         int check = jFileChooser.showOpenDialog(this);
 		if(check == jFileChooser.APPROVE_OPTION) {

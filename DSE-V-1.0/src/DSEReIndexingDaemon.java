@@ -3,7 +3,7 @@ import java.nio.file.Path;
 
 import dsePackage.WatchDir;
 
-public class ReIndexDaemon {
+public class DSEReIndexingDaemon {
 	public static void main(String[] args) {
 		String test="D:\\Eclipse Examples\\testData\\test";
 		try{
