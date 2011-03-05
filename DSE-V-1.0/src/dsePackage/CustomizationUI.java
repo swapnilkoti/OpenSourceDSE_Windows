@@ -80,6 +80,7 @@ public class CustomizationUI extends javax.swing.JFrame {
         jCheckBoxHotKey = new JCheckBox();
         jButtonSave = new JButton();
         jButtonCancel = new JButton();
+        jLabelInfo=new JLabel("Double click the directory name to remove from the list.");
         
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setTitle("Customization Window");
@@ -129,6 +130,18 @@ public class CustomizationUI extends javax.swing.JFrame {
             }
         });
         
+        jListCritical.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jListCriticalMouseClicked(evt);
+            }
+        });
+        
+        jListNotIndex.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jListNotIndexMouseClicked(evt);
+            }
+        });
+        
         org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -161,8 +174,10 @@ public class CustomizationUI extends javax.swing.JFrame {
                         .add(18, 18, 18)
                         .add(jScrollPane2, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 360, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
-            .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(640, Short.MAX_VALUE)
+            .add(org.jdesktop.layout.GroupLayout.LEADING, layout.createSequentialGroup()
+            	.addContainerGap()
+            	.add(jLabelInfo)
+            	.addContainerGap(100, Short.MAX_VALUE)
                 .add(jButtonSave)
                 .add(18, 18, 18)
                 .add(jButtonCancel)
@@ -189,12 +204,25 @@ public class CustomizationUI extends javax.swing.JFrame {
                     .add(jCheckBoxHotKey))
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
-                    .add(jButtonCancel)
+                	.add(jLabelInfo)
+                	.add(jButtonCancel)
                     .add(jButtonSave))
                 .addContainerGap(org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         pack();
+    }
+    
+    private void jListCriticalMouseClicked(java.awt.event.MouseEvent evt) {
+    	if(evt.getClickCount()==2){
+    		modelCritical.removeElementAt(jListCritical.getSelectedIndex());
+    	}
+    }
+    
+    private void jListNotIndexMouseClicked(java.awt.event.MouseEvent evt) {
+    	if(evt.getClickCount()==2){
+    		modelNotIndex.removeElementAt(jListNotIndex.getSelectedIndex());
+    	}
     }
     
     private void jButtonCriticalMouseClicked(java.awt.event.MouseEvent evt) {
@@ -298,4 +326,5 @@ public class CustomizationUI extends javax.swing.JFrame {
     private JScrollPane jScrollPane2;
     private JButton jButtonCancel;
     private JButton jButtonSave;
+    private JLabel jLabelInfo;
 }
