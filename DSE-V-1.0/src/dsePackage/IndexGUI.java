@@ -117,7 +117,7 @@ public class IndexGUI extends javax.swing.JFrame {
     private void buttonIndexMouseClicked(java.awt.event.MouseEvent evt) {
     	textAreaResult.setText("");
     	if(textFieldIndex.getText().length()!=0)
-    		IndexFiles.index_files(textFieldIndex.getText(),textAreaResult);
+    		new IndexFiles().index_files(textFieldIndex.getText(),textAreaResult);
     	else
     		textAreaResult.insert("\nPlease select the directory/file to be indexed", textAreaResult.getCaretPosition());
     }

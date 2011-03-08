@@ -47,17 +47,16 @@ public class IndexFiles {
 		textualMetadataFields.add(Metadata.RESOURCE_NAME_KEY);
 	}
 	
-  private IndexFiles() {}
+  public IndexFiles() {}
   
   static final File INDEX_DIR = new File("index");
-  public static void index_files(String dir,javax.swing.JTextArea TA) {
+  public void index_files(String dir,javax.swing.JTextArea TA) {
     
     final File docDir = new File(dir);
     
     Date start = new Date();
     try {
-    	Analyzer analyzer=new StandardAnalyzer(Version.LUCENE_CURRENT);
-    	IndexWriter writer;
+    	analyzer=new StandardAnalyzer(Version.LUCENE_CURRENT);
     	fsdDirIndex=FSDirectory.open(INDEX_DIR,new SimpleFSLockFactory());
     	if(INDEX_DIR.exists())
     		writer = new IndexWriter(fsdDirIndex, analyzer, false, new KeepOnlyLastCommitDeletionPolicy(),
@@ -66,7 +65,7 @@ public class IndexFiles {
     		writer = new IndexWriter(fsdDirIndex, analyzer, true, IndexWriter.MaxFieldLength.LIMITED);
     	TA.insert("\nIndexing to directory "+INDEX_DIR.getPath()+"...",TA.getCaretPosition());
     	directoryToBeIndexedSize=docDir.getTotalSpace();
-    	indexDocs(writer, docDir,TA);
+    	indexDocs(docDir,TA);
     	writer.optimize();
     	writer.close();
     	Date end = new Date();
@@ -77,14 +76,14 @@ public class IndexFiles {
     }
   }
 
-  static void indexDocs(IndexWriter writer, File file,javax.swing.JTextArea TA)
+  void indexDocs(File file,javax.swing.JTextArea TA)
     throws IOException {
 	if (file.canRead()) {
       if (file.isDirectory()) {
         String[] files = file.list();
         if (files != null) {
           for (int i = 0; i < files.length; i++) {
-            indexDocs(writer, new File(file, files[i]),TA);
+            indexDocs(new File(file, files[i]),TA);
           }
         }
       }
@@ -99,25 +98,27 @@ public class IndexFiles {
     		  searcher.search(query, collector);
     		  numHits = collector.getTotalHits();
     	  }catch(Exception e){}
-    	  if(numHits>0){
-    		  long time=file.lastModified();
-    		  String newTime=Long.toString(time);
-    		  Document doc=searcher.doc(0);
-    		  String oldTime=doc.get("lastModified");
-    		  if(newTime.compareTo(oldTime)!=0){
-    			  TA.insert("\nUpdating file "+file.getPath(),TA.getCaretPosition());
-        		  try{
-        			  writer.updateDocument(new Term("path",file.getCanonicalPath()),getDocument(file));
+    	  synchronized(writer){
+    		  if(numHits>0){
+        		  long time=file.lastModified();
+        		  String newTime=Long.toString(time);
+        		  Document doc=searcher.doc(0);
+        		  String oldTime=doc.get("lastModified");
+        		  if(newTime.compareTo(oldTime)!=0){
+        			  TA.insert("\nUpdating file "+file.getPath(),TA.getCaretPosition());
+            		  try{
+            			  writer.updateDocument(new Term("path",file.getCanonicalPath()),getDocument(file));
+            		  }
+            		  catch(Exception e){}
         		  }
-        		  catch(Exception e){}
-    		  }
-    	  }
-    	  else{
-    		  TA.insert("\nAdding file "+file.getPath(),TA.getCaretPosition());
-        	  try {
-        		  writer.addDocument(getDocument(file));
         	  }
-        	  catch(Exception e){}
+        	  else{
+        		  TA.insert("\nAdding file "+file.getPath(),TA.getCaretPosition());
+            	  try {
+            		  writer.addDocument(getDocument(file));
+            	  }
+            	  catch(Exception e){}
+        	  }
     	  }
     	  directoryIndexedSize+=file.getTotalSpace();
 		  if((directoryIndexedSize/directoryToBeIndexedSize)*100>=10*percentage){
@@ -183,10 +184,13 @@ public class IndexFiles {
 			}
 		}
 		doc.add(new Field("path",path ,Field.Store.YES, Field.Index.NOT_ANALYZED));
-		doc.add(new Field("lastModified",Long.toString(f.lastModified()),Field.Store.YES,Field.Index.NO));
+		doc.add(new Field("lastModified",Long.toString(f.lastModified()),Field.Store.YES,Field.Index.NOT_ANALYZED));
 		return doc;
 	}
   
+  public static boolean flag=false;
+  public static IndexWriter writer;
+  static Analyzer analyzer;
   static long percentage=1;
   static long directoryToBeIndexedSize;
   static long directoryIndexedSize=0;

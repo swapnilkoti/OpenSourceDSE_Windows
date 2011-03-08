@@ -109,7 +109,16 @@ public class WatchDir {
             // wait for key to be signalled
             WatchKey key;
             try {
-                key = watcher.take();
+            	/*key=watcher.poll();
+            	if(key==null){
+            		if(IndexFiles.flag==true){
+            			IndexFiles.flag=false;
+            			IndexFiles.writerLock.notifyAll();
+            		}*/
+            		key = watcher.take();
+            		/*IndexFiles.flag=true;
+            		IndexFiles.writerLock.wait();
+            	}*/
             } catch (InterruptedException x) {
                 return;
             }
@@ -137,10 +146,10 @@ public class WatchDir {
 
                 // if directory is created, and watching recursively, then
                 // register it and its sub-directories
-                Boolean check=name.toString().startsWith("~$") || name.toString().endsWith("tmp");
-                if (recursive && (kind == ENTRY_CREATE) && check==false) {
+                if (recursive && (kind == ENTRY_CREATE)) {
                     try {
-                        if (Files.readAttributes(child, BasicFileAttributes.class,NOFOLLOW_LINKS).isDirectory()) {
+                    	BasicFileAttributes b=Files.readAttributes(child, BasicFileAttributes.class,NOFOLLOW_LINKS);
+                        if (b.isDirectory()) {
                             registerAll(child);
                         }
                         else{
@@ -148,27 +157,26 @@ public class WatchDir {
                         	file=new File(child.toString());
                     		updateIndex(1);
                         }
-                        
-                    } catch (IOException x) {System.out.println(x.getMessage());
+                    } 
+                    catch (IOException x) {System.out.println(x.getMessage());
                         // ignore to keep sample readbale
                     }
                 }
-                else if(recursive && (kind==ENTRY_MODIFY) && check==false){
+                else if(recursive && (kind==ENTRY_MODIFY)){
                 	try{
                 		System.out.println(child);
-                		if(Files.readAttributes(child, BasicFileAttributes.class,NOFOLLOW_LINKS).isDirectory()){
+                		BasicFileAttributes b=Files.readAttributes(child, BasicFileAttributes.class,NOFOLLOW_LINKS);
+                		if(!b.isDirectory()){
                 			file=new File(child.toString());
                     		updateIndex(1);
                 		}
                 	}catch(Exception e){}
                 }
-                else if(recursive && (kind==ENTRY_DELETE) && check==false){
+                else if(recursive && (kind==ENTRY_DELETE)){
                 	try{
                 		System.out.println(child);
-                		if(Files.readAttributes(child, BasicFileAttributes.class,NOFOLLOW_LINKS).isDirectory()){
-                			fileName=child.toString();
-                    		updateIndex(2);
-                		}
+                		fileName=child.toString();
+                    	updateIndex(2);
                 	}catch(Exception e){}
                 }
             }
@@ -187,65 +195,51 @@ public class WatchDir {
     }
     
     private void updateIndex(int flg){
-    	Analyzer analyzer=new StandardAnalyzer(Version.LUCENE_CURRENT);
-    	IndexWriter writer;
-    	if(flg==1){
-    		int numHits=0;
-        	try{
-        		fsdDirIndex=FSDirectory.open(INDEX_DIR,new SimpleFSLockFactory());
-            	if(INDEX_DIR.exists())
-            		writer = new IndexWriter(fsdDirIndex, analyzer, false, new KeepOnlyLastCommitDeletionPolicy(),
-            				IndexWriter.MaxFieldLength.LIMITED);
-            	else
-            		writer = new IndexWriter(fsdDirIndex, analyzer, true, IndexWriter.MaxFieldLength.LIMITED);
-          	  	IndexReader reader = IndexReader.open(fsdDirIndex, true);
-        		IndexSearcher searcher = new IndexSearcher(reader);
-        		TopScoreDocCollector collector = TopScoreDocCollector.create(1, false);
-          	  	try{
-          	  		BooleanQuery query=new BooleanQuery();
-          	  		query.add(new TermQuery(new Term("path",file.getCanonicalPath())),BooleanClause.Occur.MUST);
-          	  		searcher.search(query, collector);
-          	  		numHits = collector.getTotalHits();
-          	  	}catch(Exception e){}
-          	  	if(numHits>0){
-          	  		long time=file.lastModified();
-          	  		String newTime=Long.toString(time);
-          	  		Document doc=searcher.doc(0);
-          	  		String oldTime=doc.get("lastModified");
-          	  		if(newTime.compareTo(oldTime)!=0){
-          	  			try{
-          	  				fileName=file.getCanonicalPath();
-          	  				writer.updateDocument(new Term("path",fileName),IndexFiles.getDocument(file));
-          	  			}
-          	  			catch(Exception e){}
-          	  		}
-          	  	}
-          	  	else{
-          	  		try {
-          	  			writer.addDocument(IndexFiles.getDocument(file));
-          	  		}
-          	  		catch(Exception e){}
-          	  	}
-          	  writer.commit();
-        	  writer.close();
-        	  fsdDirIndex.close();
+    	synchronized(IndexFiles.writer){
+    		if(flg==1){
+        		int numHits=0;
+            	try{
+            		fsdDirIndex=FSDirectory.open(INDEX_DIR,new SimpleFSLockFactory());
+                	IndexReader reader = IndexReader.open(fsdDirIndex, true);
+            		IndexSearcher searcher = new IndexSearcher(reader);
+            		TopScoreDocCollector collector = TopScoreDocCollector.create(1, false);
+              	  	try{
+              	  		BooleanQuery query=new BooleanQuery();
+              	  		query.add(new TermQuery(new Term("path",file.getCanonicalPath())),BooleanClause.Occur.MUST);
+              	  		searcher.search(query, collector);
+              	  		numHits = collector.getTotalHits();
+              	  	}catch(Exception e){}
+              	  	if(numHits>0){
+              	  		long time=file.lastModified();
+              	  		String newTime=Long.toString(time);
+              	  		Document doc=searcher.doc(0);
+              	  		String oldTime=doc.get("lastModified");
+              	  		if(newTime.compareTo(oldTime)!=0){
+              	  			try{
+              	  				fileName=file.getCanonicalPath();
+              	  				IndexFiles.writer.updateDocument(new Term("path",fileName),IndexFiles.getDocument(file));
+              	  			}
+              	  			catch(Exception e){}
+              	  		}
+              	  	}
+              	  	else{
+              	  		try {
+              	  			IndexFiles.writer.addDocument(IndexFiles.getDocument(file));
+              	  		}
+              	  		catch(Exception e){}
+              	  	}
+              	  	IndexFiles.writer.optimize();
+              	  	fsdDirIndex.close();
+            	}
+            	catch(Exception e){}
         	}
-        	catch(Exception e){}
-    	}
-    	else if(flg==2){
-    		try{
-    			fsdDirIndex=FSDirectory.open(INDEX_DIR,new SimpleFSLockFactory());
-            	if(INDEX_DIR.exists())
-            		writer = new IndexWriter(fsdDirIndex, analyzer, false, new KeepOnlyLastCommitDeletionPolicy(),
-            				IndexWriter.MaxFieldLength.LIMITED);
-            	else
-            		writer = new IndexWriter(fsdDirIndex, analyzer, true, IndexWriter.MaxFieldLength.LIMITED);
-            	Term term=new Term("path",fileName);
-            	writer.deleteDocuments(term);
-            	writer.commit();
-            	writer.close();
-            	fsdDirIndex.close();
-    		}catch(Exception e){}
+        	else if(flg==2){
+        		try{
+                	Term term=new Term("path",fileName);
+                	IndexFiles.writer.deleteDocuments(term);
+                	IndexFiles.writer.optimize();
+        		}catch(Exception e){}
+        	}
     	}
     }
 }
